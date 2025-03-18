@@ -41,7 +41,7 @@ class Database {
             const formattedPhone = this.formatPhoneNumber(phone);
             console.log('Número formatado:', formattedPhone); // Log para debug
             const [rows] = await this.connection.execute(
-                'SELECT display FROM cadastro WHERE whatsapp = ?',
+                'SELECT display, ies FROM cadastro WHERE whatsapp = ?',
                 [formattedPhone]
             );
             return rows[0] ? rows[0].display : null;

@@ -45,6 +45,8 @@ async function start() {
                     // Encontrar lista ativa no grupo
                     const groupLists = Array.from(activeLists.entries())
                         .filter(([key, list]) => list.groupId === message.chatId);
+
+                    console.log(message);
                     
                     if (groupLists.length > 0) {
                         const [listKey, activeList] = groupLists[groupLists.length - 1];
@@ -57,36 +59,81 @@ async function start() {
                 // Verificar se é um comando para gerar lista
                 if (message.body.toLowerCase() === config.keywords.generateList && 
                     message.quotedMsg) {
-                    
-                    // Verificar se a mensagem citada tem um ID válido
-                    if (!message.quotedMsgId) {
-                        console.log('ID da mensagem citada não encontrado');
-                        return;
-                    }
+                    console.log('Gerando lista...');
+                    console.log('Mensagem citada:', message.quotedMsgId);
 
-                    const quotedMessageId = message.quotedMsgId;
-                    const listKey = `${message.chatId}_${quotedMessageId}`;
-                    const activeList = activeLists.get(listKey);
+                    try {
+                        // Buscar todas as mensagens do grupo após a mensagem citada
+                        const messages = await client.getMessages(
+                            message.chatId, 
+                            {
+                                count: 150,
+                                id: message.quotedMsgId,
+                                direction: 'after',
+                            }
+                        );
 
-                    if (activeList) {
-                        console.log('Gerando lista formatada...');
-                        let listaFormatada = 'Lista de Participantes:\n\n';
-                        let contador = 1;
+                        console.log(`Encontradas ${messages.length} mensagens após a mensagem citada`);
 
-                        for (const participant of activeList.participants) {
-                            const phone = participant.split('@')[0];
-                            const nome = await database.getUserByPhone(phone) || 'Nome não encontrado';
-                            listaFormatada += `${contador}. ${nome}\n`;
-                            contador++;
+                        // Filtrar apenas mensagens com "add" exato
+                        const participants = new Set();
+                        const participantInfo = new Map(); // Armazenar informações adicionais por participante
+
+                        messages.forEach(msg => {
+                            // Verificar se a mensagem começa com "add"
+                            if (msg.body && msg.body.toLowerCase().startsWith('add')) {
+                                // Extrair o texto adicional (se houver)
+                                const additionalText = msg.body.trim().substring(3).trim();
+                                
+                                // Armazenar o usuário, seu texto adicional e nome formatado
+                                participants.add(msg.author);
+                                participantInfo.set(msg.author, {
+                                    text: additionalText,
+                                    name: msg.notifyName
+                                });
+                                //console.log(msg);
+                            }
+                        });
+
+                        console.log(`Encontrados ${participants.size} participantes`);
+
+                        if (participants.size > 0) {
+                            let listaFormatada = 'Lista de Participantes:\n\n';
+                            let contador = 1;
+
+                            for (const participant of participants) {
+                                const phone = participant.split('@')[0];
+                                const info = participantInfo.get(participant);
+                                const userInfo = await database.getUserByPhone(phone);
+                                
+                                // Formatar a linha da lista
+                                let linha = `${contador}. `;
+                                
+                                if (userInfo) {
+                                    linha += `${userInfo} `;
+                                } else {
+                                    // Usar formattedName se disponível, senão usar pushname ou número
+                                    const displayName = info.name || phone;
+                                    linha += `${displayName} `;
+                                }
+                                
+                                // Adicionar o texto adicional se houver
+                                if (info.text) {
+                                    linha += `[${info.text}]`;
+                                }
+                                
+                                listaFormatada += linha + '\n';
+                                contador++;
+                            }
+
+                            // Enviar lista em mensagem privada
+                            await client.sendText(message.author, listaFormatada);
+                        } else {
+                            await client.sendText(message.author, 'Nenhum participante encontrado após a mensagem.');
                         }
-
-                        // Enviar lista em mensagem privada
-                        await client.sendText(message.author, listaFormatada);
-                        
-                        // Remover lista após geração
-                        activeLists.delete(listKey);
-                    } else {
-                        console.log('Lista não encontrada para a mensagem citada');
+                    } catch (error) {
+                        console.error('Erro ao buscar mensagens:', error);
+                        await client.sendText(message.author, 'Erro ao gerar a lista. Por favor, tente novamente.');
                     }
                 }
             } catch (error) {
