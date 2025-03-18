@@ -112,7 +112,14 @@ async function start() {
                         console.log(`Encontrados ${participants.size} participantes`);
 
                         if (participants.size > 0) {
-                            let listaFormatada = 'Lista de Participantes:\n\n';
+                            // Formatar a data atual
+                            const data = new Date();
+                            const dia = data.getDate().toString().padStart(2, '0');
+                            const mes = (data.getMonth() + 1).toString().padStart(2, '0');
+                            const ano = data.getFullYear();
+                            const diaSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][data.getDay()];
+                            
+                            let listaFormatada = `*➡️ LISTA | ${diaSemana}, ${dia}/${mes}/${ano}*\n\n`;
                             let contador = 1;
 
                             for (const participant of participants) {
