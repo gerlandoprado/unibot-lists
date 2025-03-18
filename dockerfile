@@ -17,12 +17,8 @@ COPY package*.json ./
 # Instale as dependências
 RUN npm install
 
-# Copie o arquivo autogroups.js para o diretório de trabalho
-# COPY main.js ./
-# COPY src ./src
-
-# Cria um ponto de montagem de volume
-# VOLUME /app
+# Copie todos os arquivos do projeto
+COPY . .
 
 # Define o nome padrão do contêiner
 ENV CONTAINER_NAME=node-lists
