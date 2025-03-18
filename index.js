@@ -11,13 +11,27 @@ async function start() {
 
         const client = await wppconnect.create({
             session: 'bot-listas',
-            headless: false,
             catchQR: (base64Qr, asciiQR) => {
                 console.log('QR Code gerado! Escaneie para conectar.');
             },
             statusFind: (statusSession, session) => {
                 console.log('Status da Sessão:', statusSession);
             },
+            puppeteerOptions: {
+                headless: true,
+                timeout: 60000,
+                args: [
+                    '--no-sandbox', 
+                    '--disable-setuid-sandbox',
+                    '--disable-web-security',
+                    '--disable-cache',
+                    '--disable-application-cache',
+                    '--disable-offline-load-stale-cache',
+                    '--disk-cache-size=0',
+                    '--disable-translate',
+                    '--aggressive-cache-discard'
+                ]
+            }
         });
 
         client.onMessage(async (message) => {
